@@ -1,4 +1,4 @@
-package com.example.proyectointegradordam.ui.components
+package com.example.proyectointegradordam.ui.components.buttons
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape

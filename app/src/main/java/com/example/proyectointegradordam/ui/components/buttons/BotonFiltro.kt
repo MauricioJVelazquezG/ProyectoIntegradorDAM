@@ -1,4 +1,4 @@
-package com.example.proyectointegradordam.ui.components
+package com.example.proyectointegradordam.ui.components.buttons
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
