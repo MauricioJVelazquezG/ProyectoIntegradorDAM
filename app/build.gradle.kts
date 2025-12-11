@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -18,6 +19,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -42,6 +44,24 @@ android {
 }
 
 dependencies {
+
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0"))
+
+    // Módulos de Supabase
+    implementation("io.github.jan-tennert.supabase:postgrest-kt") // Base de datos
+    implementation("io.github.jan-tennert.supabase:auth-kt")   // Autenticación (Login)
+
+    // Motor de Ktor (Cliente HTTP)
+    implementation("io.ktor:ktor-client-android:3.0.0")
+
+    // Serialización JSON
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
