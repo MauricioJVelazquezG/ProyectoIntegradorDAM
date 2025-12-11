@@ -11,9 +11,9 @@
 
 | Nombre Completo | Rol / Tareas Principales | Usuario GitHub |
 | :--- | :--- | :--- |
-| Cisneros Zaragoza Sylvanna Michelle| [Diseño de las pantallas y Conectividad entre ellas ] | @SylvannaCiss |
-| Peralta Trujillo Josseph Levi | Retrofit y Backend | @LeviPeralta |
-| Velazquez Garcia Mauricio Javier | Sensores, corregir errores y lógica | @MauricioJVelazquezG |
+| Cisneros Zaragoza Sylvanna Michelle| Diseño de las pantallas y Conectividad entre ellas  | @SylvannaCiss |
+| Peralta Trujillo Josseph Levi | Retrofit, Backend, Lógica| @LeviPeralta |
+| Velazquez Garcia Mauricio Javier | Screens y Repositorio | @MauricioJVelazquezG |
 
 ---
 
