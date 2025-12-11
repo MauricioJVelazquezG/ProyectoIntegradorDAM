@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -19,51 +20,52 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyectointegradordam.R
-import com.example.proyectointegradordam.ui.viewmodel.DecisionesViewModel
 import com.example.proyectointegradordam.ui.viewmodel.DecisionesUiState
+import com.example.proyectointegradordam.ui.viewmodel.DecisionesViewModel
 
 @Composable
 fun Decisiones(
     viewModel: DecisionesViewModel = viewModel(),
-    onIrEscanear: () -> Unit = {},
-    onIrInventario: () -> Unit = {}
+    onIrEscanear: () -> Unit,   // Callback para navegar al Scanner
+    onIrInventario: () -> Unit  // Callback para navegar al Menú
 ) {
 
     // Observamos el estado del ViewModel
     val uiState by viewModel.uiState.collectAsState()
 
-    // ----- Manejo de navegación -----
-    when (uiState) {
-        is DecisionesUiState.IrEscanear -> {
-            onIrEscanear()
-            viewModel.limpiarEstado()
+    // ----- Manejo de navegación (Efecto Secundario) -----
+    // Usamos LaunchedEffect para que esto se ejecute de forma segura
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is DecisionesUiState.IrEscanear -> {
+                onIrEscanear()
+                viewModel.limpiarEstado() // Reseteamos para que no vuelva a navegar solo
+            }
+            is DecisionesUiState.IrInventario -> {
+                onIrInventario()
+                viewModel.limpiarEstado()
+            }
+            else -> { /* No hacer nada si es Idle */ }
         }
-
-        is DecisionesUiState.IrInventario -> {
-            onIrInventario()
-            viewModel.limpiarEstado()
-        }
-
-        else -> {}
     }
 
     // ---- UI ----
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(Color.White), // Fondo blanco
         contentAlignment = Alignment.TopCenter
     ) {
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(30.dp),
-            modifier = Modifier.padding(top = 200.dp)
+            modifier = Modifier.padding(top = 100.dp) // Ajusté un poco el padding
         ) {
 
             Text(
                 text = "Selecciona una opción",
-                fontSize = 18.sp,
+                fontSize = 24.sp, // Un poco más grande para título
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Black
             )
@@ -76,19 +78,19 @@ fun Decisiones(
                     .width(280.dp)
                     .height(150.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFFF936E))
-                    .clickable { viewModel.seleccionarEscanear() },
+                    .background(Color(0xFFFF936E)) // Color naranja suave
+                    .clickable { viewModel.seleccionarEscanear() }, // Acción del VM
                 contentAlignment = Alignment.CenterStart
             ) {
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(18.dp),
                     modifier = Modifier.padding(20.dp)
                 ) {
+                    // Asegúrate de tener la imagen 'escanearje' en res/drawable
                     Image(
                         painter = painterResource(id = R.drawable.escanearje),
-                        contentDescription = null,
+                        contentDescription = "Icono Escanear",
                         modifier = Modifier.size(80.dp)
                     )
 
@@ -96,7 +98,7 @@ fun Decisiones(
                         text = "Escanear\nproducto",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF63200F)
+                        color = Color(0xFF63200F) // Color texto marrón oscuro
                     )
                 }
             }
@@ -109,19 +111,19 @@ fun Decisiones(
                     .width(280.dp)
                     .height(150.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFCCE8F8))
-                    .clickable { viewModel.seleccionarInventario() },
+                    .background(Color(0xFFCCE8F8)) // Color azul suave
+                    .clickable { viewModel.seleccionarInventario() }, // Acción del VM
                 contentAlignment = Alignment.CenterStart
             ) {
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(18.dp),
                     modifier = Modifier.padding(20.dp)
                 ) {
+                    // Asegúrate de tener la imagen 'inventarioje' en res/drawable
                     Image(
                         painter = painterResource(id = R.drawable.inventarioje),
-                        contentDescription = null,
+                        contentDescription = "Icono Inventario",
                         modifier = Modifier.size(80.dp)
                     )
 
@@ -136,5 +138,3 @@ fun Decisiones(
         }
     }
 }
-
-

@@ -21,15 +21,21 @@ import com.example.proyectointegradordam.ui.components.texts.TextField
 import com.example.proyectointegradordam.ui.theme.ProyectoIntegradorDAMTheme
 import com.example.proyectointegradordam.ui.viewmodel.AuthUiState
 import com.example.proyectointegradordam.ui.viewmodel.LoginViewModel
+import com.example.proyectointegradordam.ui.viewmodel.LoginViewModelFactory
+import io.github.jan.supabase.SupabaseClient
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel(), // 1. Inyectamos el ViewModel
-    onLoginSuccess: () -> Unit, // 2. Callback para navegar al Home cuando sea exitoso
-    onNavigateToRegister: () -> Unit // 3. Callback para ir a registro
+    supabaseClient: SupabaseClient, // <--- NECESARIO: Recibir cliente
+    onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit
 ) {
+    // Inicializamos el ViewModel con el Factory para pasarle Supabase
+    val viewModel: LoginViewModel = viewModel(
+        factory = LoginViewModelFactory(supabaseClient)
+    )
+
     // Estados locales para los campos de texto
-    // Nota: Asumo que tu componente custom TextField usa MutableState, si no, adáptalo a String simple
     val correo = remember { mutableStateOf("") }
     val contra = remember { mutableStateOf("") }
 
@@ -42,11 +48,12 @@ fun LoginScreen(
         when(val state = uiState) {
             is AuthUiState.Success -> {
                 Toast.makeText(context, "Bienvenido", Toast.LENGTH_SHORT).show()
-                onLoginSuccess() // Navega a la siguiente pantalla
+                onLoginSuccess()
                 viewModel.resetState()
             }
             is AuthUiState.Error -> {
                 Toast.makeText(context, state.mensaje, Toast.LENGTH_LONG).show()
+                viewModel.resetState() // Opcional: limpiar error después del Toast
             }
             else -> {}
         }
@@ -76,7 +83,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text("Ingresa tu contraseña", color = Color(0xFF3C2E2A))
-        // IMPORTANTE: Asegúrate de que tu componente TextField maneje inputType password visualmente
+        // Asumo que tu componente maneja internamente la visualización de password
         TextField(value = contra, label = "Contraseña")
 
         Spacer(modifier = Modifier.height(25.dp))
@@ -85,7 +92,6 @@ fun LoginScreen(
         if (uiState is AuthUiState.Loading) {
             CircularProgressIndicator(color = Color(0xFF3C2E2A))
         } else {
-            // AQUI ESTA LA CONEXIÓN QUE FALTABA:
             PrimaryButton(
                 text = "Iniciar sesión",
                 onClick = {
@@ -108,19 +114,7 @@ fun LoginScreen(
                 .padding(top = 8.dp)
                 .padding(bottom = 20.dp)
                 .align(Alignment.CenterHorizontally),
-            onClick = { onNavigateToRegister() } // Conectamos la navegación
-        )
-    }
-}
-
-// Preview actualizado (mockeando callbacks vacíos para diseño)
-@Preview(showBackground = true)
-@Composable
-fun PreviewLoginScreen(){
-    ProyectoIntegradorDAMTheme {
-        LoginScreen(
-            onLoginSuccess = {},
-            onNavigateToRegister = {}
+            onClick = { onNavigateToRegister() }
         )
     }
 }

@@ -1,80 +1,77 @@
 package com.example.proyectointegradordam.ui.Screens
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.proyectointegradordam.data.model.Producto
+import com.example.proyectointegradordam.data.repository.ProductoRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.from
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-// Estado de la UI
-data class ScannerUiState(
-    val lastScannedCode: String? = null,
-    val product: Producto? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
+// Eventos de Navegación
+sealed interface ScannerNavigationEvent {
+    data class GoToFound(val producto: Producto) : ScannerNavigationEvent
+    data class GoToAdd(val codigo: String) : ScannerNavigationEvent
+}
 
 class ScannerViewModel(
-    private val supabase: SupabaseClient
+    private val repository: ProductoRepository // Usamos tu clase concreta
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ScannerUiState())
-    val uiState: StateFlow<ScannerUiState> = _uiState.asStateFlow()
+    private val _navigationEvent = Channel<ScannerNavigationEvent>()
+    val navigationEvent = _navigationEvent.receiveAsFlow()
 
-    // Control para no saturar con consultas si el usuario sigue apuntando al mismo código
-    private var lastProcessedCode: String? = null
-    private var lastProcessedTime: Long = 0
+    var isLoading by androidx.compose.runtime.mutableStateOf(false) // Estado simple
+
+    private var lastScannedCode: String? = null
+    private var lastScanTime: Long = 0
+    private val DEBOUNCE_TIME = 2000L
 
     fun onBarcodeDetected(code: String) {
-        val now = System.currentTimeMillis()
-        // Debounce de 2 segundos para el mismo código
-        if (code == lastProcessedCode && (now - lastProcessedTime) < 2000) return
+        val currentTime = System.currentTimeMillis()
 
-        lastProcessedCode = code
-        lastProcessedTime = now
-        fetchProduct(code)
-    }
+        if (code == lastScannedCode && (currentTime - lastScanTime) < DEBOUNCE_TIME) {
+            return
+        }
+        if (isLoading) return
 
-    private fun fetchProduct(code: String) {
+        lastScannedCode = code
+        lastScanTime = currentTime
+        isLoading = true
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, lastScannedCode = code, error = null, product = null)
-
             try {
-                // SINTAXIS SUPABASE 3.0.0
-                // Asumiendo que tu tabla se llama "productos" y la columna "codigo_barras"
-                val result = supabase.from("productos")
-                    .select {
-                        filter {
-                            eq("codigo_barras", code)
-                        }
-                    }
-                    .decodeSingleOrNull<Producto>()
+                // Usamos tu método buscarPorCodigo
+                val producto = repository.buscarPorCodigo(code)
 
-                if (result != null) {
-                    _uiState.value = _uiState.value.copy(isLoading = false, product = result)
+                if (producto != null) {
+                    _navigationEvent.send(ScannerNavigationEvent.GoToFound(producto))
                 } else {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Producto no encontrado")
+                    _navigationEvent.send(ScannerNavigationEvent.GoToAdd(code))
                 }
-
             } catch (e: Exception) {
                 e.printStackTrace()
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "Error: ${e.message}")
+            } finally {
+                isLoading = false
             }
         }
     }
 }
 
-// Factory para inyectar SupabaseClient manualmente sin Dagger/Hilt
-class ScannerViewModelFactory(private val supabase: SupabaseClient) : ViewModelProvider.Factory {
+// Factory Ajustado: Crea tu ProductoRepository directamente
+class ScannerViewModelFactory(
+    private val supabaseClient: SupabaseClient // Lo dejamos por si lo ocupas, aunque tu repo usa SupabaseService
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ScannerViewModel::class.java)) {
+            // AQUÍ ESTÁ EL CAMBIO: Instanciamos tu repo directamente
+            val repo = ProductoRepository()
             @Suppress("UNCHECKED_CAST")
-            return ScannerViewModel(supabase) as T
+            return ScannerViewModel(repo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

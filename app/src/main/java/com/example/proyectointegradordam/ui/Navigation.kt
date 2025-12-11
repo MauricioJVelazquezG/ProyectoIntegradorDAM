@@ -8,45 +8,59 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.proyectointegradordam.data.model.Producto
-import com.example.proyectointegradordam.ui.Screens.AgregarProducto
-import com.example.proyectointegradordam.ui.Screens.LoginScreen
-// import com.example.proyectointegradordam.ui.Screens.HomeScreen // (Asumo que crearás esta pantalla)
-// import com.example.proyectointegradordam.ui.Screens.RegisterScreen // (Asumo que crearás esta)
+import com.example.proyectointegradordam.ui.Screens.*
+import io.github.jan.supabase.SupabaseClient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-// 1. Definimos las rutas de forma segura (Sealed Classes)
+// 1. Definición de Rutas
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
-    data object Home : Screen("home")
+    data object Decision : Screen("decision")
+    data object Menu : Screen("menu_inventario")
+    data object Scanner : Screen("scanner")
 
-    // Ruta con argumento: Recibe un Producto en formato JSON
-    data object AgregarProducto : Screen("agregar_producto/{productoJson}") {
-        // Función helper para construir la ruta con los datos
+    data object ProductoEncontrado : Screen("producto_encontrado/{productoJson}") {
         fun createRoute(producto: Producto): String {
             val json = Json.encodeToString(producto)
-            val jsonEncoded = Uri.encode(json) // Codificar para que sea seguro en la URL
+            val jsonEncoded = Uri.encode(json)
+            return "producto_encontrado/$jsonEncoded"
+        }
+    }
+
+    data object AgregarProducto : Screen("agregar_producto/{productoJson}") {
+        fun createRoute(codigoBarras: String): String {
+            // Producto temporal solo para transportar el código
+            val tempProd = Producto(codigoBarras = codigoBarras, nombre = "", precio = 0.0)
+            val json = Json.encodeToString(tempProd)
+            val jsonEncoded = Uri.encode(json)
             return "agregar_producto/$jsonEncoded"
         }
     }
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    supabaseClient: SupabaseClient
+) {
     val navController = rememberNavController()
+
+    // --- CORRECCIÓN AQUÍ ---
+    // NO instanciamos 'ProductoRepositoryImpl' porque ya no existe o da error.
+    // Las pantallas crearán su propio repositorio internamente o usando el Factory.
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route // La pantalla inicial
+        startDestination = Screen.Login.route
     ) {
 
-        // --- PANTALLA DE LOGIN ---
+        // --- 1. LOGIN ---
         composable(Screen.Login.route) {
             LoginScreen(
+                supabaseClient = supabaseClient,
                 onLoginSuccess = {
-                    // Al loguearse, vamos al Home y borramos el Login del historial
-                    navController.navigate(Screen.Home.route) {
+                    navController.navigate(Screen.Decision.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -56,48 +70,77 @@ fun AppNavigation() {
             )
         }
 
-        // --- PANTALLA DE REGISTRO (Placeholder) ---
+        // --- REGISTRO ---
         composable(Screen.Register.route) {
-            // RegisterScreen(...) // Aquí iría tu pantalla de registro
-            // Por ahora un texto temporal para que no de error
-            androidx.compose.material3.Text("Pantalla de Registro (Pendiente)")
+            // RegisterScreen(...) // Pendiente
         }
 
-        // --- PANTALLA PRINCIPAL (HOME / SCANNER) ---
-        composable(Screen.Home.route) {
-            // Aquí deberías llamar a tu pantalla Home
-            // Simulamos que al escanear, navegamos a agregar producto
+        // --- 2. DECISIÓN ---
+        composable(Screen.Decision.route) {
+            Decisiones(
+                onIrEscanear = { navController.navigate(Screen.Scanner.route) },
+                onIrInventario = { navController.navigate(Screen.Menu.route) }
+            )
+        }
 
-            /* EJEMPLO DE USO EN TU HOME:
-            HomeScreen(
-                onProductoEscaneado = { productoDetectado ->
-                    val ruta = Screen.AgregarProducto.createRoute(productoDetectado)
+        // --- 3. MENU (INVENTARIO) ---
+        composable(Screen.Menu.route) {
+            Menu(
+                supabaseClient = supabaseClient,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // --- 4. SCANNER ---
+        composable(Screen.Scanner.route) {
+            ScannerScreen(
+                supabaseClient = supabaseClient,
+                onProductoEncontrado = { producto ->
+                    val ruta = Screen.ProductoEncontrado.createRoute(producto)
+                    navController.navigate(ruta)
+                },
+                onProductoNoEncontrado = { codigo ->
+                    val ruta = Screen.AgregarProducto.createRoute(codigo)
                     navController.navigate(ruta)
                 }
             )
-            */
-            androidx.compose.material3.Text("Pantalla Home (Pendiente)")
         }
 
-        // --- PANTALLA AGREGAR PRODUCTO ---
+        // --- 5. PRODUCTO ENCONTRADO (Editar Stock) ---
+        composable(
+            route = Screen.ProductoEncontrado.route,
+            arguments = listOf(navArgument("productoJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val jsonString = backStackEntry.arguments?.getString("productoJson")
+            val producto = jsonString?.let { Json.decodeFromString<Producto>(it) }
+
+            if (producto != null) {
+                ProductoEncontradoScreen(
+                    producto = producto,
+                    onBackToScan = {
+                        navController.popBackStack(Screen.Decision.route, inclusive = false)
+                    }
+                )
+            }
+        }
+
+        // --- 6. AGREGAR PRODUCTO (Nuevo) ---
         composable(
             route = Screen.AgregarProducto.route,
-            arguments = listOf(
-                navArgument("productoJson") { type = NavType.StringType }
-            )
+            arguments = listOf(navArgument("productoJson") { type = NavType.StringType })
         ) { backStackEntry ->
-            // Recuperamos el JSON y lo convertimos de vuelta a Objeto Producto
             val jsonString = backStackEntry.arguments?.getString("productoJson")
+            val productoTemp = jsonString?.let { Json.decodeFromString<Producto>(it) }
+            val codigoBarras = productoTemp?.codigoBarras ?: ""
 
-            // Convertimos el JSON a objeto Producto
-            val producto = jsonString?.let {
-                Json.decodeFromString<Producto>(it)
-            } ?: Producto(codigoBarras = "", nombre = "", precio = 0.0) // Fallback por seguridad
-
-            AgregarProducto(
-                productoEscaneado = producto,
-                onNavigateBack = {
-                    navController.popBackStack() // Volver atrás
+            AgregarProductoScreen(
+                supabaseClient = supabaseClient,
+                codigoBarrasInicial = codigoBarras,
+                onGuardarExitoso = {
+                    navController.popBackStack(Screen.Decision.route, inclusive = false)
+                },
+                onCancelar = {
+                    navController.popBackStack()
                 }
             )
         }

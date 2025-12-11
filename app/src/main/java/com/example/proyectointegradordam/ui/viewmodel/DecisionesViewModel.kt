@@ -1,53 +1,37 @@
 package com.example.proyectointegradordam.ui.viewmodel
 
-
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
+// 1. Definimos los estados posibles de la pantalla
+sealed interface DecisionesUiState {
+    data object Idle : DecisionesUiState          // Estado quieto (esperando clic)
+    data object IrEscanear : DecisionesUiState    // El usuario quiere ir a escanear
+    data object IrInventario : DecisionesUiState  // El usuario quiere ir al inventario
+}
+
+// 2. La clase ViewModel
 class DecisionesViewModel : ViewModel() {
 
     // Estado interno mutable
     private val _uiState = MutableStateFlow<DecisionesUiState>(DecisionesUiState.Idle)
-
-    // Estado observado por la UI
+    // Estado público inmutable (para que la UI lo lea)
     val uiState: StateFlow<DecisionesUiState> = _uiState.asStateFlow()
 
-
-    // ---------------------------
-    // ACCIONES DE LA PANTALLA
-    // ---------------------------
-
+    // Función cuando clickean "Escanear"
     fun seleccionarEscanear() {
-        viewModelScope.launch {
-            _uiState.value = DecisionesUiState.Loading
-
-            // Simulación ligera de proceso (coherente con arquitectura async)
-            delay(150)
-
-            _uiState.value = DecisionesUiState.IrEscanear
-        }
+        _uiState.value = DecisionesUiState.IrEscanear
     }
 
+    // Función cuando clickean "Inventario"
     fun seleccionarInventario() {
-        viewModelScope.launch {
-            _uiState.value = DecisionesUiState.Loading
-
-            delay(150)
-
-            _uiState.value = DecisionesUiState.IrInventario
-        }
+        _uiState.value = DecisionesUiState.IrInventario
     }
 
-
-    // ---------------------------
-    // LIMPIAR ESTADO
-    // ---------------------------
-
+    // Función MUY IMPORTANTE: Resetea el estado a Idle después de navegar
+    // Si no hacemos esto, al volver atrás, la app intentará navegar de nuevo automáticamente
     fun limpiarEstado() {
         _uiState.value = DecisionesUiState.Idle
     }
