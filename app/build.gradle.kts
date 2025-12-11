@@ -45,21 +45,24 @@ android {
 
 dependencies {
 
+    // --- TUS DEPENDENCIAS ACTUALES (Supabase, Ktor, etc.) ---
     implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0"))
-
-    // Módulos de Supabase
-    implementation("io.github.jan-tennert.supabase:postgrest-kt") // Base de datos
-    implementation("io.github.jan-tennert.supabase:auth-kt")   // Autenticación (Login)
-
-    // Motor de Ktor (Cliente HTTP)
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-android:3.0.0")
-
-    // Serialización JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-
     implementation("androidx.navigation:navigation-compose:2.8.0")
+
+    // --- NUEVAS: CameraX (Cámara) ---
+    val cameraxVersion = "1.3.4" // O la versión estable más reciente
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
+    // --- NUEVAS: ML Kit (Escáner de código de barras) ---
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
 
     implementation(libs.androidx.core.ktx)
@@ -77,4 +80,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+
 }
