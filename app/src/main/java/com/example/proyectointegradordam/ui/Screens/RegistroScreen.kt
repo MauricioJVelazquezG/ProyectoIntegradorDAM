@@ -10,17 +10,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyectointegradordam.R
 import com.example.proyectointegradordam.ui.components.texts.Link
 import com.example.proyectointegradordam.ui.components.texts.TextField
 import com.example.proyectointegradordam.ui.theme.ProyectoIntegradorDAMTheme
+import com.example.proyectointegradordam.ui.viewmodel.AuthUiState
+import com.example.proyectointegradordam.ui.viewmodel.RegistroViewModel
 
 @Composable
-fun RegistroScreen(onLoginClick: () -> Unit) {
+fun RegistroScreen(
+    onLoginClick: () -> Unit,
+    viewModel: RegistroViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
 
     val correo = remember { mutableStateOf("") }
     val contra = remember { mutableStateOf("") }
     val contraConfirmar = remember { mutableStateOf("") }
+
+    when (state) {
+        is AuthUiState.RegistrationSuccess -> {
+            LaunchedEffect(Unit) {
+                onLoginClick()
+            }
+        }
+        else -> Unit
+    }
 
     Column(
         modifier = Modifier
@@ -67,11 +83,3 @@ fun RegistroScreen(onLoginClick: () -> Unit) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewRegistroScreen(){
-
-    ProyectoIntegradorDAMTheme()  {
-        RegistroScreen() { }
-    }
-}
