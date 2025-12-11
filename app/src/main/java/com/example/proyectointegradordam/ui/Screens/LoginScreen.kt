@@ -102,19 +102,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        Text(
-            text = "¿No tienes cuenta? ",
-            color = Color(0xFF3C2E2A)
-        )
 
-        Link (
-            text = "Registrate",
-            color = Color(0xFF3C2E2A),
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .padding(bottom = 20.dp)
-                .align(Alignment.CenterHorizontally),
-            onClick = { onNavigateToRegister() }
-        )
     }
 }
