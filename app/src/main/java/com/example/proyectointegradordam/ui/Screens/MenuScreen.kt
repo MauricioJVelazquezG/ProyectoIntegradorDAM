@@ -1,6 +1,5 @@
 package com.example.proyectointegradordam.ui.Screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,28 +27,25 @@ import com.example.proyectointegradordam.ui.viewmodel.ProductoUiState
 import com.example.proyectointegradordam.ui.viewmodel.ProductoViewModel
 import com.example.proyectointegradordam.ui.viewmodel.ProductoViewModelFactory
 import io.github.jan.supabase.SupabaseClient
+import java.text.Normalizer
 
 @Composable
 fun Menu(
-    supabaseClient: SupabaseClient, // Recibimos el cliente para instanciar el repo
-    onBack: () -> Unit // Callback para volver a la pantalla anterior
+    supabaseClient: SupabaseClient,
+    onBack: () -> Unit
 ) {
-    // 1. Configuramos el ViewModel con su Factory y Repositorio
-    // Usamos 'remember' para que no se cree el repo en cada recomposición
     val repository = remember { ProductoRepository() }
     val viewModel: ProductoViewModel = viewModel(
         factory = ProductoViewModelFactory(repository)
     )
 
-    // 2. Cargar datos al entrar a la pantalla
     LaunchedEffect(Unit) {
         viewModel.cargarInventario()
     }
 
-    // 3. Observar el estado
     val uiState by viewModel.uiState.collectAsState()
 
-    // Categorías disponibles
+    // Categorías (Puedes dejarlas con acentos para que se vean bonitas en la UI)
     val categorias = listOf(
         "Todo", "Limpieza", "Despensa", "Bebidas",
         "Higiene Personal", "Dulcería", "Panadería"
@@ -62,7 +58,7 @@ fun Menu(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // --- HEADER CON BOTÓN ATRÁS ---
+        // --- HEADER ---
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -74,18 +70,15 @@ fun Menu(
                     tint = Color.Black
                 )
             }
-
-            Spacer(modifier = Modifier.weight(1f)) // Empuja el texto al centro (opcional)
-
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "Inventario",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-
-            Spacer(modifier = Modifier.weight(1f)) // Balancea el espacio
-            Spacer(modifier = Modifier.width(48.dp)) // Espacio equivalente al botón para centrar exacto
+            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(48.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -106,7 +99,7 @@ fun Menu(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- CONTENIDO SEGÚN ESTADO ---
+        // --- LISTA DE PRODUCTOS ---
         when (val state = uiState) {
             is ProductoUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -124,21 +117,34 @@ fun Menu(
             is ProductoUiState.SuccessLista -> {
                 val productos = state.productos
 
-                // Filtramos la lista localmente
+                // --- LOGICA DE FILTRADO CORREGIDA ---
                 val productosFiltrados = if (categoriaSeleccionada == "Todo") {
                     productos
                 } else {
-                    productos.filter {
-                        it.categoria.equals(categoriaSeleccionada, ignoreCase = true)
+                    productos.filter { producto ->
+                        // Normalizamos ambos lados para ignorar acentos, mayúsculas y espacios
+                        val catBD = normalizarTexto(producto.categoria)
+                        val catSel = normalizarTexto(categoriaSeleccionada)
+                        catBD == catSel
                     }
                 }
 
                 if (productosFiltrados.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "No hay productos en: $categoriaSeleccionada",
-                            color = Color.Gray
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "No hay productos en: $categoriaSeleccionada",
+                                color = Color.Gray
+                            )
+                            // Útil para depurar: Muestra qué categorías hay realmente
+                            /*
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Categorías encontradas en BD:", fontSize = 10.sp)
+                            productos.map { it.categoria }.distinct().forEach {
+                                Text(it, fontSize = 10.sp)
+                            }
+                            */
+                        }
                     }
                 } else {
                     LazyColumn(
@@ -154,22 +160,31 @@ fun Menu(
                     }
                 }
             }
-            else -> {
-                // Estado inicial o vacío
-            }
+            else -> {}
         }
     }
 }
 
-// Función auxiliar para iconos
+// --- FUNCIONES AUXILIARES ---
+
+// 1. Quitar acentos, espacios y minúsculas
+fun normalizarTexto(texto: String): String {
+    val sinAcentos = Normalizer.normalize(texto, Normalizer.Form.NFD)
+        .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+    return sinAcentos.lowercase().trim()
+}
+
+// 2. Obtener Icono (También usa normalización para ser seguro)
 fun obtenerIconoPorCategoria(categoria: String): Int {
-    return when (categoria.lowercase()) {
-        "limpieza" -> R.drawable.cloro
-        "despensa" -> R.drawable.aceite
-        "dulcería", "dulceria" -> R.drawable.chicles
-        "higiene personal" -> R.drawable.papel
-        "panadería", "panaderia" -> R.drawable.tortillas
-        "bebidas" -> R.drawable.logootso // Asumiendo que tienes un icono para bebidas o usas el logo
+    val catNormalizada = normalizarTexto(categoria)
+
+    return when {
+        catNormalizada.contains("limpieza") -> R.drawable.cloro
+        catNormalizada.contains("despensa") -> R.drawable.aceite
+        catNormalizada.contains("dulce") -> R.drawable.chicles // Coincide con dulceria o dulcería
+        catNormalizada.contains("higiene") -> R.drawable.papel
+        catNormalizada.contains("pan") -> R.drawable.tortillas
+        catNormalizada.contains("bebida") -> R.drawable.logootso
         else -> R.drawable.logootso
     }
 }
