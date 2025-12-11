@@ -125,9 +125,9 @@ fun Menu(
 // Función auxiliar para poner iconos bonitos según la categoría (ya que la BD no tiene R.drawable)
 fun obtenerIconoPorCategoria(categoria: String): Int {
     return when (categoria.lowercase()) {
-        "limpieza" -> R.drawable.jabon // Asegurate de tener estos drawables o usa uno genérico
+        "limpieza" -> R.drawable.cloro // Asegurate de tener estos drawables o usa uno genérico
         "despensa" -> R.drawable.aceite
-        "dulcería", "dulceria" -> R.drawable.chocolate
+        "dulcería", "dulceria" -> R.drawable.chicles
         "higiene personal" -> R.drawable.papel
         "panadería", "panaderia" -> R.drawable.tortillas
         else -> R.drawable.logootso // Icono por defecto si no coincide
