@@ -8,10 +8,11 @@ import io.github.jan.supabase.postgrest.from
 class ProductoRepository {
 
     // Insertar un producto
+    // Nota: Aquí usa los @SerialName de tu modelo Producto.kt, así que si ya pusiste @SerialName("barcode"), esto funcionará bien.
     suspend fun agregarProducto(producto: Producto) {
         try {
             SupabaseService.client
-                .from("productos")
+                .from("products")
                 .insert(producto)
         } catch (e: Exception) {
             Log.e("Repo", "Error al agregar: ${e.message}")
@@ -23,10 +24,11 @@ class ProductoRepository {
     suspend fun buscarPorCodigo(codigo: String): Producto? {
         return try {
             SupabaseService.client
-                .from("productos")
+                .from("products")
                 .select {
                     filter {
-                        eq("codigo_barras", codigo)
+                        // CORRECCIÓN: Usar "barcode" (nombre en BD) en vez de "codigo_barras"
+                        eq("barcode", codigo)
                     }
                 }
                 .decodeSingleOrNull<Producto>()
@@ -36,30 +38,33 @@ class ProductoRepository {
         }
     }
 
-    // Obtener todos los productos (Con Try-Catch para seguridad)
+    // Obtener todos los productos
     suspend fun obtenerTodos(): List<Producto> {
         return try {
             SupabaseService.client
-                .from("productos")
+                .from("products")
                 .select()
                 .decodeList<Producto>()
         } catch (e: Exception) {
             Log.e("Repo", "Error al obtener todos: ${e.message}")
-            emptyList() // Regresa lista vacía en vez de crashear
+            emptyList()
         }
     }
 
-    // --- NUEVA FUNCIÓN NECESARIA PARA TU PANTALLA ---
-    suspend fun actualizarStock(id: Int, nuevoStock: Int) {
+    // Actualizar Stock
+    // CORRECCIÓN: El ID ahora es String (UUID)
+    suspend fun actualizarStock(id: String, nuevoStock: Int) {
         try {
             SupabaseService.client
-                .from("productos")
+                .from("products")
                 .update(
                     {
+                        // Asegúrate que la columna en BD sea "stock"
                         set("stock", nuevoStock)
                     }
                 ) {
                     filter {
+                        // Asegúrate que la columna ID en BD sea "id"
                         eq("id", id)
                     }
                 }

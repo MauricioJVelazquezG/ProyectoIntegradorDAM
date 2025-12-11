@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -38,7 +40,6 @@ fun ScannerScreen(
     onProductoEncontrado: (Producto) -> Unit,
     onProductoNoEncontrado: (String) -> Unit
 ) {
-    // Esto funciona ahora porque el Factory crea el ProductoRepository correcto
     val viewModel: ScannerViewModel = viewModel(
         factory = ScannerViewModelFactory(supabaseClient)
     )
@@ -47,7 +48,6 @@ fun ScannerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // --- ESCUCHAMOS EVENTOS DE NAVEGACIÓN ---
-    // LaunchedEffect con Unit se ejecuta al inicio. Collect observa el flujo.
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
@@ -61,18 +61,20 @@ fun ScannerScreen(
         }
     }
 
-    // --- PERMISOS ---
+    // --- LÓGICA DE PERMISOS ---
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
 
+    // Launcher para pedir el permiso
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted -> hasCameraPermission = granted }
     )
 
+    // ESTO LANZA EL POPUP AUTOMÁTICAMENTE AL ENTRAR
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -82,6 +84,7 @@ fun ScannerScreen(
     // --- UI ---
     Box(modifier = Modifier.fillMaxSize()) {
         if (hasCameraPermission) {
+            // --- CÁMARA ---
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx).apply {
@@ -107,7 +110,6 @@ fun ScannerScreen(
                                 it.setAnalyzer(
                                     Executors.newSingleThreadExecutor(),
                                     BarcodeAnalyzer { barcode ->
-                                        // Pasamos el código al ViewModel
                                         viewModel.onBarcodeDetected(barcode)
                                     }
                                 )
@@ -130,15 +132,15 @@ fun ScannerScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Guía visual (Cuadro rojo)
+            // Guía visual
             Box(
                 modifier = Modifier
-                    .size(280.dp) // Un poco más grande
+                    .size(280.dp)
                     .border(3.dp, Color.Red, RoundedCornerShape(16.dp))
                     .align(Alignment.Center)
             )
 
-            // Indicador "Procesando..." si el ViewModel está ocupado
+            // Loading
             if (viewModel.isLoading) {
                 Box(
                     modifier = Modifier
@@ -155,9 +157,25 @@ fun ScannerScreen(
             }
 
         } else {
-            // Mensaje si no hay permisos
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Se requiere permiso de cámara para escanear.")
+            // --- UI CUANDO NO HAY PERMISOS ---
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Se requiere acceso a la cámara para escanear productos.",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                // Botón manual por si el usuario canceló el diálogo automático
+                Button(
+                    onClick = {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                ) {
+                    Text("Dar Permiso")
+                }
             }
         }
     }

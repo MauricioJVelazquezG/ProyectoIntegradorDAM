@@ -5,13 +5,25 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Producto(
-    val id: Int? = null, // Supabase lo genera automático
-    @SerialName("codigo_barras") val codigoBarras: String,
+    // CORRECCIÓN 1: Cambiamos Int por String porque recibimos un UUID
+    val id: String? = null,
+
+    // CORRECCIÓN 2: Mapeamos los nombres en inglés (JSON) a tus variables en español
+    @SerialName("barcode")
+    val codigoBarras: String,
+
+    @SerialName("name")
     val nombre: String,
+
+    @SerialName("price")
     val precio: Double,
-    val categoria: String = "General", // Campo nuevo
-    val stock: Int = 0, // Campo nuevo (antes era "cantidad" String, mejor usar Int)
+
+    @SerialName("stock")
+    val stock: Int,
+
+    @SerialName("category")
+    val categoria: String = "General",
+
+    @SerialName("description")
     val descripcion: String? = null
-    // Nota sobre imágenes: Las Bases de Datos no guardan "R.drawable.id".
-    // Por ahora usaremos una lógica en la vista para poner el icono según la categoría.
 )

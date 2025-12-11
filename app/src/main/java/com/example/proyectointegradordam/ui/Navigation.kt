@@ -31,8 +31,16 @@ sealed class Screen(val route: String) {
 
     data object AgregarProducto : Screen("agregar_producto/{productoJson}") {
         fun createRoute(codigoBarras: String): String {
-            // Producto temporal solo para transportar el código
-            val tempProd = Producto(codigoBarras = codigoBarras, nombre = "", precio = 0.0)
+            // Producto temporal para transportar el código.
+            // IMPORTANTE: Debemos llenar 'stock' y 'categoria' porque son obligatorios en tu Data Class.
+            val tempProd = Producto(
+                codigoBarras = codigoBarras,
+                nombre = "",   // Vacío
+                precio = 0.0,  // Cero
+                stock = 0,     // <--- FALTABA ESTE (Obligatorio Int)
+                categoria = "" // <--- FALTABA ESTE (Opcional si tiene default, pero mejor ponerlo)
+            )
+
             val json = Json.encodeToString(tempProd)
             val jsonEncoded = Uri.encode(json)
             return "agregar_producto/$jsonEncoded"
